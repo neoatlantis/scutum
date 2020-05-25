@@ -20,7 +20,7 @@ module.exports = function(args, options){
 
     for(let [usage, {verb, handler}] of Object.entries(usages)){
         if(parsed_args[verb] === true){
-            return handler(args, options);
+            return handler(parsed_args, options);
         }
     }
 
