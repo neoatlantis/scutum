@@ -1,4 +1,4 @@
-const { stdin, stdout, stderr } = require("../stdio");
+const { stdin, stdout, stderr } = require("../io");
 
 const docopt = require("docopt").docopt;
 const usages = {};

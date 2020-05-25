@@ -1,4 +1,4 @@
-const openpgp = require("openpgp");
+const openpgp = require("../openpgp");
 const util = require("../util");
 
 require("../router").register(

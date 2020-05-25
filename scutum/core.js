@@ -6,7 +6,7 @@
  * @return [worker, stdout]
  */
 
-const { stdin, stdout, stderr }  = require("./stdio");
+const { stdin, stdout, stderr }  = require("./io");
 
 const subcommands = require("./subcommands");
 const router = require("./router");

@@ -1,4 +1,4 @@
-const openpgp = require("openpgp");
+const openpgp = require("../openpgp");
 
 require("../router").register(
     "generate-key [--no-armor] [--] [USERID...]",
