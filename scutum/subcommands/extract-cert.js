@@ -8,7 +8,7 @@ module.exports = async function(args, options){
 
     const key = (await openpgp.key.readArmored(input_buffer)).keys[0];
 
-    if(!key.isPrivate()){
+    if(!(key && key.isPrivate())){
         stderr.throw("bad_data");
     }
 
@@ -17,6 +17,11 @@ module.exports = async function(args, options){
     }
 
     const public_key = key.toPublic();
-    
-    stdout(public_key.armor());
+
+    // TODO move this conversion to stdout module
+    if(args["--no-armor"]){
+        stdout(public_key.toPacketlist().write());
+    } else {
+        stdout(public_key.armor());
+    }
 };

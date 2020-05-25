@@ -23,5 +23,8 @@
     "docopt": "^0.6.2",
     "lodash": "^4.17.15",
     "openpgp": "^4.10.4"
+  },
+  "bin": {
+    "scutum": "./scutum/index.js"
   }
 }
