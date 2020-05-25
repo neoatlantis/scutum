@@ -1,7 +1,12 @@
 const openpgp = require("openpgp");
 const util = require("../util");
 
-module.exports = async function(args, options){
+require("../router").register(
+    "extract-cert [--no-armor]",
+    subcommand
+);
+
+async function subcommand(args, options){
     const { stdin, stdout, stderr } = options;
 
     const input_buffer = await util.async_iterator_stream_readall(stdin);

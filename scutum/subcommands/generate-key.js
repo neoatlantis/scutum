@@ -1,6 +1,12 @@
 const openpgp = require("openpgp");
 
-module.exports = async function(args, options){
+require("../router").register(
+    "generate-key [--no-armor] [--] [USERID...]",
+    subcommand
+);
+
+
+async function subcommand(args, options){
     const { stdin, stdout, stderr } = options;
 
     const userIds = args.USERID.map((u) => { return { name: u } });
