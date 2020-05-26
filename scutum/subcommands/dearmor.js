@@ -1,6 +1,5 @@
 const openpgp = require("../openpgp");
 const util = require("../util");
-const file_input = require("../io/file_input");
 
 require("../router").register(
     "dearmor",
@@ -10,10 +9,26 @@ require("../router").register(
 async function subcommand(args, options){
     const { stdin, stdout, stderr } = options;
 
-    const armored_input = await util.async_iterator_stream_readall(stdin);
-    const armored_input_text = armored_input.toString("utf-8");
+    const input = await util.async_iterator_stream_readall(stdin);
+    let dearmored;
 
-    const dearmored = await openpgp.armor.decode(armored_input_text);
+    if(util.buffer_looks_armored(input)){
+        try{
+            const armored_input_text = input.toString("utf-8");
+            dearmored = await openpgp.armor.decode(armored_input_text);
+            stdout(await util.readablestream_readall(dearmored.data));
+        } catch(e){
+            stderr.throw("bad_data");
+        }
+    } else {
+        let packetlist;
+        try{
+            packetlist = await util.buffer_to_packetlist(input);
+        } catch(e){ 
+            stderr.throw("bad_data");
+        }
+        // if nothing happens, pass the input through
+        stdout(input);
+    }
 
-    stdout(await util.readablestream_readall(dearmored.data));
 }
