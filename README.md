@@ -18,4 +18,4 @@ written yet.
 
 \[specification\]: [Stateless OpenPGP Command Line Interface][SPEC]
 
-[[SPEC]]: https://tools.ietf.org/html/draft-dkg-openpgp-stateless-cli-02
+[SPEC]: https://tools.ietf.org/html/draft-dkg-openpgp-stateless-cli-02
