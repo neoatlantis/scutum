@@ -1,18 +1,28 @@
 const openpgp = require("./openpgp");
 
-module.exports.stream_readall = async function(s){
-    const chunks = [];
+module.exports.stream_yieldall = async function*(s){
     if(s.getReader !== undefined){ // Web API ReadableStream
         const reader = s.getReader();
         while(true){
             let chunk = await reader.read();
-            if(chunk.value) chunks.push(chunk.value);
+            if(chunk.value) yield chunk.value;
             if(chunk.done) break;
         }
     } else {
         for await (const chunk of process.stdin){
-            chunks.push(chunk);
+            yield chunk;
         }
+    }
+}
+
+
+module.exports.stream_readall = async function(s){
+    const chunks = [];
+    const g = module.exports.stream_yieldall(s);
+    while(true){
+        let { done, value } = await g.next();
+        if(value) chunks.push(value);
+        if(done) break;
     }
     return Buffer.concat(chunks);
 }

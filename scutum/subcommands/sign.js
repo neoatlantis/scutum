@@ -1,6 +1,6 @@
 const openpgp = require("../openpgp");
 const util = require("../util");
-const file_input = require("../io/file_input");
+const read_keys = require("../io/read_keys");
 
 require("../router").register(
     "sign [--no-armor] [--as=binary|text] [--] KEY [KEY...]",
@@ -19,30 +19,10 @@ async function subcommand(args, options){
 
     if(format == "text") stderr.throw("FIXME: TEXT NOT SUPPORTED."); // TODO
 
-    let keys = [];
-    for(let key_filename of args.KEY){
-        const key_data = await file_input(key_filename);
-        let key = await openpgp.key.readArmored(key_data); // TODO check if not armored
-
-        if(!key){
-            stderr.throw("bad_data");
-        }
-
-        key = key.keys[0];
-
-        if(!key.isPrivate()){
-            stderr.throw("bad_data");
-        }
-
-        if(!key.isDecrypted()){
-            stderr.throw("key_is_protected");
-        }
-
-        keys.push(key);
-    }
+    let keys = await read_keys(args.KEY, read_keys.FILTER_PRIVATE_KEY);
 
 
-    const data_to_sign = await util.async_iterator_stream_readall(stdin);
+    const data_to_sign = await util.stream_readall(stdin);
     // TODO ReadableStream
 
     let input_parser = (format == "binary" ? 
