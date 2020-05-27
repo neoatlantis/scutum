@@ -1,15 +1,21 @@
 scutum
 ======
 
-Another OpenPGP command-line(CLI) tool, just like GnuPG, But based on
-`openpgp.js` and runs on NodeJS.
+`scutum`(Latin: shield) is a command line PGP tool running on NodeJS and
+powered by OpenPGP.js. As designed with a stateless style of usage, it should
+be friendly for both human and machines to undertake basic PGP operations, like
+generating public & private keys, encrypting-, ~decrypting-~(not yet), signing-
+and verifying messages. 
+
+This tool is still under busy development, and much of its features must be
+refined to have a consistent behaviour with [specification][SPEC]. It's also
+planned to make a stateful version for more features named `scuta`, but no code
+written yet.
 
 
-Features
---------
 
-1. User and machine friendly interface. Try to implement [Stateless OpenPGP
-Command Line Interface (draft-dkg-openpgp-stateless-cli-01)](https://tools.ietf.org/html/draft-dkg-openpgp-stateless-cli-01).
-2. Thanks to active development in OpenPGP.js, new algorithms will be made
-    available without some advanced modes and/or new versions.
 
+
+\[specification\]: [Stateless OpenPGP Command Line Interface][SPEC]
+
+[[SPEC]]: https://tools.ietf.org/html/draft-dkg-openpgp-stateless-cli-02
