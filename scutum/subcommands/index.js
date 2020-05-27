@@ -10,12 +10,12 @@ require("./generate-key");
 require("./extract-cert");
 require("./encrypt");
 require("./sign");
+require("./verify");
 require("./armor");
 require("./dearmor");
 
 // coding
 
-require("./verify");
 require("./decrypt");
 require("./detach-inband-signature-and-message");
 
