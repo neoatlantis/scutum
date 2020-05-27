@@ -9,9 +9,7 @@ require("../router").register(
 async function subcommand(args, options){
     const { stdin, stdout, stderr } = options;
 
-    const input_buffer = await util.async_iterator_stream_readall(stdin);
-
-    const key = (await openpgp.key.readArmored(input_buffer)).keys[0];
+    const key = (await openpgp.key.readArmored(stdin)).keys[0];
 
     if(!(key && key.isPrivate())){
         stderr.throw("bad_data");

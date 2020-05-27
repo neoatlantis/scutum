@@ -41,7 +41,7 @@ async function subcommand(args, options){
 
     let input;
     try{
-        input = await util.async_iterator_stream_readall(stdin);
+        input = await util.stream_readall(stdin);
     } catch(e){
         stderr.throw("bad_data");
     }
@@ -51,7 +51,7 @@ async function subcommand(args, options){
         try{
             input = input.toString("utf-8").trim();
             input = await openpgp.armor.decode(input);
-            input = await util.readablestream_readall(input.data);
+            input = await util.stream_readall(input.data);
         } catch(e){
             stderr.throw("bad_data");
         }

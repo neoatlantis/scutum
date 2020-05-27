@@ -15,7 +15,7 @@ const router = require("./router");
 async function scutum(cli_arguments, options){
     
     await router(cli_arguments, {
-        stdin: (options && options.stdin ? options.stdin : stdin()),
+        stdin: (options && options.stdin ? options.stdin : stdin),
         stdout: stdout,
         stderr: stderr,
     });
