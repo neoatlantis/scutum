@@ -17,8 +17,6 @@ async function subcommand(args, options){
         stderr.throw("bad_command"); // TODO improve CLI parser and fix this need
     }
 
-    if(format == "text") stderr.throw("FIXME: TEXT NOT SUPPORTED."); // TODO
-
     let keys = await read_keys(args.KEY, read_keys.FILTER_PRIVATE_KEY);
 
 
@@ -27,6 +25,7 @@ async function subcommand(args, options){
 
     let input_parser = (format == "binary" ? 
         openpgp.message.fromBinary : openpgp.message.fromText);
+
 
 
 

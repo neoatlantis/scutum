@@ -1,5 +1,15 @@
 const openpgp = require("./openpgp");
 
+
+module.exports.parse_date = function(date){
+    // https://github.com/nearwood/iso8601/blob/master/index.js
+    if(date == "-") return false;
+    const ISO8601_test = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d*)(?:Z|(\+|-)(?:[\d|:]*))?$/;
+    if(ISO8601_test.test(date)) return new Date(date);
+    throw Error("invalid_date");
+}
+
+
 module.exports.stream_yieldall = async function*(s){
     if(s.getReader !== undefined){ // Web API ReadableStream
         const reader = s.getReader();

@@ -1,5 +1,6 @@
 const openpgp = require("../openpgp");
 const util = require("../util");
+const read_keys = require("../io/read_keys");
 
 require("../router").register(
     "extract-cert [--no-armor]",
@@ -11,12 +12,12 @@ async function subcommand(args, options){
 
     const key = (await openpgp.key.readArmored(stdin)).keys[0];
 
-    if(!(key && key.isPrivate())){
-        stderr.throw("bad_data");
-    }
-
-    if(!key.isDecrypted()){
-        stderr.throw("key_is_protected");
+    try{
+        // read_keys was designed for reading from file, but its filter
+        // functions can be used here.
+        read_keys.FILTER_PRIVATE_KEY(key);
+    } catch(e){
+        stderr.throw(e);
     }
 
     const public_key = key.toPublic();

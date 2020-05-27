@@ -8,14 +8,14 @@
 require("./version");
 require("./generate-key");
 require("./extract-cert");
+require("./encrypt");
+require("./sign");
 require("./armor");
 require("./dearmor");
 
 // coding
 
-require("./sign");
 require("./verify");
-require("./encrypt");
 require("./decrypt");
 require("./detach-inband-signature-and-message");
 

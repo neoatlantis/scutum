@@ -22,7 +22,7 @@ module.exports = async function read_keys(filenames, filter){
 }
 
 module.exports.FILTER_PRIVATE_KEY = function(key){
-    if(!key.isPrivate()) throw Error("bad_data");
-    if(!key.isDecrypted()) throw Error("key_is_protected");
+    if(!key || !key.isPrivate()) throw Error("bad_data");
+    if(!key.isDecrypted()) throw Error("key_is_protected"); // TODO Only for stateless. If stateful is allowed, remove this
     return true;
 }
