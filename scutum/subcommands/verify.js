@@ -87,7 +87,8 @@ async function subcommand(args, options){
     let ever_accepted = false;
 
     for(let signature of signatures){
-        // verify each provided signature file
+        // verify each provided signature file, against all public keys
+        // supplied
 
         const verifications = (await openpgp.verify({
             message: message,
@@ -95,7 +96,8 @@ async function subcommand(args, options){
             publicKeys: public_keys,
         })).signatures;
 
-        // examine verifications result
+        // examine verifications result, each verification corresponding to a
+        // public key
 
         for(let verification of verifications){
             let check_result = check_verification(
@@ -123,13 +125,14 @@ async function subcommand(args, options){
                 "."
             ].join(' ') + "\n");
 
-            // TODO print fingerprint instead of key id
-
-            //console.log(verification);
-//            const verified_key_id = verification.signatures[0].keyid.toHex();
-
         }
 
+    }
+
+    if(!ever_accepted){
+        stderr.throw("no_signature");
+    } else {
+        stderr.throw("ok");
     }
 
 
