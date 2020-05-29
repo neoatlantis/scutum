@@ -4,7 +4,7 @@ const openpgp = require("./openpgp");
 module.exports.parse_date = function(date){
     // https://github.com/nearwood/iso8601/blob/master/index.js
     if(date == "-") return false;
-    const ISO8601_test = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d*)(?:Z|(\+|-)(?:[\d|:]*))?$/;
+    const ISO8601_test = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?(([+-]\d\d:\d\d)|Z)?$/i;
     if(ISO8601_test.test(date)) return new Date(date);
     throw Error("invalid_date");
 }

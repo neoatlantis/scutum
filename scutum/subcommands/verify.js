@@ -1,6 +1,7 @@
 const openpgp = require("../openpgp");
 const util = require("../util");
 const read_keys = require("../io/read_keys");
+const read_public_keys = require("../io/read_public_keys");
 const read_signatures = require("../io/read_signatures");
 
 require("../router").register(
@@ -49,18 +50,8 @@ async function get_primary_and_signing_key(keys, issuer_key_id){
 async function subcommand(args, options){
     const { stdin, stdout, stderr } = options;
 
-    let not_before = false, not_after = new Date();
-
-    try{
-        if(null != args["--not-before"]){
-            not_before = util.parse_date(args["--not-before"]);
-        }
-        if(null != args["--not-after"]){
-            not_after = util.parse_date(args["--not-after"]);
-        }
-    } catch(e) {
-        stderr.throw(e);
-    }
+    const not_before = args["--not-before"],
+          not_after = args["--not-after"];
 
     const inputs = [args.SIGNATURES].concat(args.CERTS);
 
@@ -68,13 +59,7 @@ async function subcommand(args, options){
         return (sig !== undefined);
     });
 
-    const public_keys = (await read_keys(inputs, function(key){
-        return (key !== undefined);
-    })).map((key) => {
-        // we allow private keys as input, as they can be converted to public
-        if(key.isPublic()) return key;
-        return key.toPublic();
-    });
+    const public_keys = await read_public_keys(inputs);
 
     // ensure all inputs are valid
     if(signatures.length + public_keys.length != inputs.length){
@@ -90,41 +75,22 @@ async function subcommand(args, options){
         // verify each provided signature file, against all public keys
         // supplied
 
-        const verifications = (await openpgp.verify({
+        for(let {
+            creation,
+            signing_key_fingerprint,
+            primary_key_fingerprint
+        } of (await do_verification(public_keys, {
             message: message,
             signature: signature,
             publicKeys: public_keys,
-        })).signatures;
-
-        // examine verifications result, each verification corresponding to a
-        // public key
-
-        for(let verification of verifications){
-            let check_result = check_verification(
-                verification,
-                not_before,
-                not_after
-            );
-            if(!check_result) continue;
-
+        }, not_before, not_after))){
             ever_accepted = true;
-
-            const creation = check_result.creation;
-            const issuer_key_id = verification.keyid;
-            
-            const { signingKey, primaryKey } = 
-                await get_primary_and_signing_key(
-                    public_keys,
-                    issuer_key_id 
-                );
-
             stdout([
                 creation.toISOString(),
-                signingKey.getFingerprint().toUpperCase(),
-                primaryKey.getFingerprint().toUpperCase(),
+                signing_key_fingerprint,
+                primary_key_fingerprint,
                 "."
-            ].join(' ') + "\n");
-
+            ].join(" ") + "\n");
         }
 
     }
@@ -137,3 +103,64 @@ async function subcommand(args, options){
 
 
 }
+
+
+/**
+ * Verify a message with given arguments to openpgp.verify, then interprete
+ * the results. Returns { creation, signing_key_fingerprint,
+ * primary_key_fingerprint } for each successful verified signature.
+ */
+
+async function do_verification(public_keys, config, not_before, not_after){
+    const verifications = (await openpgp.verify(config)).signatures;
+    const ret = [];
+
+    let date_not_before = false,
+        date_not_after = new Date();
+
+    try{
+        if(null != not_before){
+            date_not_before = util.parse_date(not_before);
+        }
+        if(null != not_after){
+            date_not_after = util.parse_date(not_after);
+        }
+    } catch(e) {
+        throw Error(e);
+    }
+
+
+    // examine verifications result, each verification corresponding to a
+    // public key
+
+    for(let verification of verifications){
+        let check_result = check_verification(
+            verification,
+            date_not_before,
+            date_not_after
+        );
+        if(!check_result) continue;
+
+        ever_accepted = true;
+
+        const creation = check_result.creation;
+        const issuer_key_id = verification.keyid;
+        
+        const { signingKey, primaryKey } = 
+            await get_primary_and_signing_key(
+                public_keys,
+                issuer_key_id 
+            );
+
+        ret.push({
+            creation: creation,
+            signing_key_fingerprint: signingKey.getFingerprint().toUpperCase(),
+            primary_key_fingerprint: primaryKey.getFingerprint().toUpperCase(),
+        });
+    }
+
+    return ret;
+}
+
+
+module.exports = do_verification;
