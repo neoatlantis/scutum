@@ -6,7 +6,7 @@ const read_keys = require("../io/read_keys");
 const read_public_keys = require("../io/read_public_keys");
 const read_passwords = require("../io/read_passwords");
 
-const do_verification = require("./verify");
+const { read_verification, verifications_to_string }  = require("./verify");
 
 require("../router").register(
     "decrypt [--session-key-out=SESSIONKEY] [--with-session-key=SESSIONKEY...] [--with-password=PASSWORD...] [--verify-out=VERIFICATIONS [--verify-with=CERTS...] [--verify-not-before=DATE] [--verify-not-after=DATE] ] [--] [KEY...]",
@@ -41,25 +41,32 @@ async function subcommand(args, options){
         stderr.throw("missing_args");
     }
 
-    const will_verify_message = Boolean(output_verification);
-    if(will_verify_message ^ (input_verify_publickeys.length > 0)){
+    const need_verify = Boolean(output_verification);
+    if(need_verify ^ (input_verify_publickeys.length > 0)){
         // if only verify output or certs supplied: cannot perform verification
         stderr.throw("incomplete_verification");
     }
 
     // Read in material for decryption and verification
 
-    const decrypt_session_keys = []; // TODO session keys!
+    let decrypt_session_keys = []; // TODO session keys!
     const decrypt_keys = await read_keys(
         input_keys, read_keys.FILTER_PRIVATE_KEY);
     const decrypt_passwords = await read_passwords(input_passwords);
 
     const verify_publickeys = await read_public_keys(input_verify_publickeys);
 
-    // Read in ciphertext
+    // Read in ciphertext, we make 2 copies for same data, one for session key
+    // decryption, the other for openpgp.verify; This is not a good solution
+    // because it consumes much memory, when the input is large.
     
-    let message = await openpgp.message.readArmored(
-        await util.stream_readall(stdin));
+    let message_for_session_key, message;
+    {
+        const input_data = await util.stream_readall(stdin);
+
+        message_for_session_key = await openpgp.message.readArmored(input_data);
+        message = await openpgp.message.readArmored(input_data);
+    }
 
     // Attempt to decrypt, if message is encrypted
     
@@ -69,51 +76,48 @@ async function subcommand(args, options){
             enums.packet.symEncryptedAEADProtected
         ).length > 0);
 
-    if(need_decrypt){
-        try{
-            let result = await do_decrypt(
-                message,
-                decrypt_keys, decrypt_passwords, decrypt_session_keys
-            );
-            message = result.message;
-            //io.session_key.toFile(output_session_key, result.session_keys);
-        } catch(e){
-            stderr.throw("cannot_decrypt");
-        }
-    }
+    decrypt_session_keys = decrypt_session_keys.concat(
+        await decrypt_session_key(
+            message_for_session_key,
+            decrypt_keys,
+            decrypt_passwords
+        )
+    );
+
+    const result = await openpgp.decrypt({
+        sessionKeys: decrypt_session_keys,
+        message: message,
+        publicKeys: verify_publickeys,
+    });
 
     // Output decrypt results.
 
-    stdout(await util.stream_readall(message.getLiteralData()));
+    stdout(result.data);
 
-    // Now verify the message, if instructed.
+    if(need_verify){
+        
+        const verify_result = await read_verification(
+            verify_publickeys,
+            result.signatures,
+            input_verify_not_before,
+            input_verify_not_after
+        );
+
+        console.log(verifications_to_string(verify_result));
+
+    }
     
+
 }
 
 
 
 
-/**
- * Attempt to decrypt the message. Returns { message, session_key } upon
- * successful decryption.
- */
-async function do_decrypt(message, keys, passwords, session_keys){
-    if(!session_keys) session_keys = [];
-    
-    if(keys.length > 0 || passwords.length > 0){
-        try{
-            session_keys = session_keys.concat(
-                await message.decryptSessionKeys(keys, passwords));
-        } catch(e){
-            throw Error("cannot_decrypt_session_key");
-        }
+async function decrypt_session_key(message, keys, passwords){
+    try{
+        const session_keys = await message.decryptSessionKeys(keys, passwords);
+        return session_keys;
+    } catch(e){
+        throw Error("cannot_decrypt_session_key");
     }
-
-    message = await message.decrypt(
-        null, // privateKeys
-        null, // passwords
-        session_keys
-    );
-
-    return { message, session_keys };
 }

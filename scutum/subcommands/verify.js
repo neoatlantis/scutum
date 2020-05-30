@@ -16,8 +16,11 @@ require("../router").register(
  * according to our conditions. It must be valid by itself, and fall into
  * data range defined by user.
  */
-function check_verification(verification, not_before, not_after){
-    if(true !== verification.valid) return;
+async function check_verification(verification, not_before, not_after){
+    if(verification.valid !== undefined && true !== verification.valid) return;
+    if(verification.verified !== undefined){
+        if(!(await verification.verified)) return;
+    }
     const creation = verification.signature.packets[0].created;
     const creation_timestamp = creation.getTime();
 
@@ -75,23 +78,20 @@ async function subcommand(args, options){
         // verify each provided signature file, against all public keys
         // supplied
 
-        for(let {
-            creation,
-            signing_key_fingerprint,
-            primary_key_fingerprint
-        } of (await do_verification(public_keys, {
+        const verify_result = await openpgp.verify({
             message: message,
             signature: signature,
             publicKeys: public_keys,
-        }, not_before, not_after))){
-            ever_accepted = true;
-            stdout([
-                creation.toISOString(),
-                signing_key_fingerprint,
-                primary_key_fingerprint,
-                "."
-            ].join(" ") + "\n");
-        }
+        });
+
+        const verify_result_parsed = await read_verification(
+            public_keys,
+            verify_result.signatures,
+            not_before,
+            not_after
+        );
+        if(verify_result_parsed.length > 0) ever_accepted = true;
+        stdout(verifications_to_string(verify_result_parsed));
 
     }
 
@@ -109,10 +109,16 @@ async function subcommand(args, options){
  * Verify a message with given arguments to openpgp.verify, then interprete
  * the results. Returns { creation, signing_key_fingerprint,
  * primary_key_fingerprint } for each successful verified signature.
+ *
+ * @param {str} not_before - Optional. An ISO-8601 string indicating the
+ *                           earliest creation date at which a signature may be
+ *                           accepted. Defaults to start of time.
+ * @param {str} not_after  - Optional. An ISO-8601 string indicating the
+ *                           latest creation date at which a signature may be
+ *                           accepted. Defaults to current time.
  */
 
-async function do_verification(public_keys, config, not_before, not_after){
-    const verifications = (await openpgp.verify(config)).signatures;
+async function read_verification(public_keys, verifications, not_before, not_after){
     const ret = [];
 
     let date_not_before = false,
@@ -129,12 +135,11 @@ async function do_verification(public_keys, config, not_before, not_after){
         throw Error(e);
     }
 
-
     // examine verifications result, each verification corresponding to a
     // public key
 
     for(let verification of verifications){
-        let check_result = check_verification(
+        let check_result = await check_verification(
             verification,
             date_not_before,
             date_not_after
@@ -163,4 +168,22 @@ async function do_verification(public_keys, config, not_before, not_after){
 }
 
 
-module.exports = do_verification;
+function verifications_to_string(list){
+    const ret = [];
+    for(let {    
+        creation,
+        signing_key_fingerprint,
+        primary_key_fingerprint
+    } of list){
+        ret.push([
+            creation.toISOString(),
+            signing_key_fingerprint,
+            primary_key_fingerprint,
+        ].join(" "));
+    }
+    return ret.join("\n");
+}
+
+
+module.exports.read_verification = read_verification;
+module.exports.verifications_to_string = verifications_to_string;
