@@ -61,9 +61,8 @@ async function subcommand(args, options){
     let message = await openpgp.message.readArmored(
         await util.stream_readall(stdin));
 
+    // Attempt to decrypt, if message is encrypted
     
-    
-    // attempt to decrypt, if message is encrypted
     const need_decrypt = (message.packets.filterByTag(
             enums.packet.symmetricallyEncrypted,
             enums.packet.symEncryptedIntegrityProtected,
@@ -71,13 +70,27 @@ async function subcommand(args, options){
         ).length > 0);
 
     if(need_decrypt){
-        message = await do_decrypt(
-            message,
-            decrypt_keys, decrypt_passwords, decrypt_session_keys
-        );
+        try{
+            let result = await do_decrypt(
+                message,
+                decrypt_keys, decrypt_passwords, decrypt_session_keys
+            );
+            message = result.message;
+            //io.session_key.toFile(output_session_key, result.session_keys);
+        } catch(e){
+            stderr.throw("cannot_decrypt");
+        }
     }
+
+    // Output decrypt results.
+
+    stdout(await util.stream_readall(message.getLiteralData()));
+
+    // Now verify the message, if instructed.
     
 }
+
+
 
 
 /**
@@ -85,11 +98,22 @@ async function subcommand(args, options){
  * successful decryption.
  */
 async function do_decrypt(message, keys, passwords, session_keys){
+    if(!session_keys) session_keys = [];
     
     if(keys.length > 0 || passwords.length > 0){
-        const session_keys = await message.decryptSessionKeys(keys, passwords);
-
-        console.log(session_keys);
+        try{
+            session_keys = session_keys.concat(
+                await message.decryptSessionKeys(keys, passwords));
+        } catch(e){
+            throw Error("cannot_decrypt_session_key");
+        }
     }
 
+    message = await message.decrypt(
+        null, // privateKeys
+        null, // passwords
+        session_keys
+    );
+
+    return { message, session_keys };
 }
