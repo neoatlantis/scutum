@@ -1,5 +1,5 @@
 const openpgp = require("../openpgp");
-const file_input = require("./file_input");
+const file = require("./file");
 
 
 function session_key_to_notation(obj){
@@ -36,7 +36,7 @@ function notation_to_session_key(str){
 module.exports.from_file = async function(filenames){
     const ret = [];
     for(let filename of filenames){
-        (await file_input(filename)).split("\n").forEach(l => {
+        (await file.read(filename)).toString().split("\n").forEach(l => {
             try{
                 ret.push(notation_to_session_key(l));
             } catch(e){
@@ -53,4 +53,6 @@ module.exports.from_file = async function(filenames){
  * written, write them one per line. Each key is represented in GnuPG notation.
  */
 module.exports.to_file = async function(filename, session_keys){
+    const writedata = session_keys.map(session_key_to_notation).join("\n");
+    await file.write(filename, writedata);
 }

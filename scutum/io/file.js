@@ -12,7 +12,7 @@ module.exports.read = async function(filename){
 module.exports.write = async function(filename, data, mode){
     return new Promise((resolve, reject) => {
         fs.writeFile(filename, data, {
-            flag: mode,
+            flag: mode !== undefined ? mode : "wx",
         }, (err, data) => {
             if(err) return reject(err);
             resolve(data);

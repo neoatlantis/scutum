@@ -48,7 +48,7 @@ async function subcommand(args, options){
 
     // Read in material for decryption and verification
 
-    let decrypt_session_keys = []; // TODO session keys!
+    let decrypt_session_keys = await io.session_keys.from_file(input_session_keys);
     const decrypt_keys = await io.keys.private_from_files(input_keys);
     const decrypt_passwords = await read_passwords(input_passwords);
 
@@ -75,19 +75,32 @@ async function subcommand(args, options){
             enums.packet.symEncryptedAEADProtected
         ).length > 0);*/
 
-    decrypt_session_keys = decrypt_session_keys.concat(
-        await decrypt_session_key(
-            message_for_session_key,
-            decrypt_keys,
-            decrypt_passwords
-        )
-    );
+    try{
+        decrypt_session_keys = decrypt_session_keys.concat(
+            await decrypt_session_key(
+                message_for_session_key,
+                decrypt_keys,
+                decrypt_passwords
+            )
+        );
+    } catch(e){
+    }
 
-    const result = await openpgp.decrypt({
-        sessionKeys: decrypt_session_keys,
-        message: message,
-        publicKeys: verify_publickeys,
-    });
+    if(output_session_key){
+        await io.session_keys.to_file(output_session_key, decrypt_session_keys);
+    }
+
+    let result;
+
+    try{
+        result = await openpgp.decrypt({
+            sessionKeys: decrypt_session_keys,
+            message: message,
+            publicKeys: verify_publickeys,
+        });
+    } catch(e){
+        throw Error("cannot_decrypt");
+    }
 
     // Output decrypt results.
 
