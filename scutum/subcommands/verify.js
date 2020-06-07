@@ -1,7 +1,7 @@
 const openpgp = require("../openpgp");
 const util = require("../util");
-const read_keys = require("../io/read_keys");
-const read_public_keys = require("../io/read_public_keys");
+const io = require("../io");
+
 const read_signatures = require("../io/read_signatures");
 
 require("../router").register(
@@ -62,7 +62,7 @@ async function subcommand(args, options){
         return (sig !== undefined);
     });
 
-    const public_keys = await read_public_keys(inputs);
+    const public_keys = await io.keys.public_from_files(inputs);
 
     // ensure all inputs are valid
     if(signatures.length + public_keys.length != inputs.length){

@@ -1,6 +1,6 @@
 const openpgp = require("../openpgp");
 const util = require("../util");
-const read_keys = require("../io/read_keys");
+const io = require("../io");
 
 require("../router").register(
     "sign [--no-armor] [--as=binary|text] [--] KEY [KEY...]",
@@ -17,7 +17,7 @@ async function subcommand(args, options){
         stderr.throw("bad_command"); // TODO improve CLI parser and fix this need
     }
 
-    let keys = await read_keys(args.KEY, read_keys.FILTER_PRIVATE_KEY);
+    let keys = await io.keys.private_from_files(args.KEY);
 
 
     const data_to_sign = await util.stream_readall(stdin);

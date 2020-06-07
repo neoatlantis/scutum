@@ -1,6 +1,6 @@
 const openpgp = require("../openpgp");
 const util = require("../util");
-const read_keys = require("../io/read_keys");
+const io = require("../io");
 const read_passwords = require("../io/read_passwords");
 
 require("../router").register(
@@ -15,13 +15,15 @@ require("../router").register(
 async function subcommand(args, options){
     const { stdin, stdout, stderr } = options;
 
-    let public_keys = await read_keys(args.CERTS, async function(public_key){
+    let public_keys = await io.keys.public_from_files(args.CERTS);
+
+    for(let public_key of public_keys){
         if(!(await public_key.getEncryptionKey())){
             throw Error("cert_cannot_encrypt");
         }
-        return true;
-    });
-
+    }
+    
+    
     let passwords;
     passwords = read_passwords(args["--with-password"], function(password){
         if(!read_passwords.RULE_HUMAN_READABLE(password)){
@@ -36,10 +38,7 @@ async function subcommand(args, options){
         stderr.throw("missing_arg");
     }
 
-    let private_keys = await read_keys(
-        args["--sign-with"],
-        read_keys.FILTER_PRIVATE_KEY
-    );
+    let private_keys = await io.keys.private_from_files(args["--sign-with"]);
 
     /*const result = (await openpgp.encrypt({
         message: openpgp.message.fromBinary(stdin),

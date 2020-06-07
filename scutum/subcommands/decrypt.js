@@ -1,9 +1,8 @@
 const openpgp = require("../openpgp");
 const enums = openpgp.enums;
 const util = require("../util");
-const file_input = require("../io/file_input");
-const read_keys = require("../io/read_keys");
-const read_public_keys = require("../io/read_public_keys");
+const io = require("../io");
+
 const read_passwords = require("../io/read_passwords");
 
 const { read_verification, verifications_to_string }  = require("./verify");
@@ -50,11 +49,11 @@ async function subcommand(args, options){
     // Read in material for decryption and verification
 
     let decrypt_session_keys = []; // TODO session keys!
-    const decrypt_keys = await read_keys(
-        input_keys, read_keys.FILTER_PRIVATE_KEY);
+    const decrypt_keys = await io.keys.private_from_files(input_keys);
     const decrypt_passwords = await read_passwords(input_passwords);
 
-    const verify_publickeys = await read_public_keys(input_verify_publickeys);
+    const verify_publickeys = 
+        await io.keys.public_from_files(input_verify_publickeys);
 
     // Read in ciphertext, we make 2 copies for same data, one for session key
     // decryption, the other for openpgp.verify; This is not a good solution
@@ -115,7 +114,10 @@ async function subcommand(args, options){
 
 async function decrypt_session_key(message, keys, passwords){
     try{
-        const session_keys = await message.decryptSessionKeys(keys, passwords);
+        const session_keys = await message.decryptSessionKeys(
+            (util.types.isArray(keys) && keys.length > 0 ? keys : undefined),
+            (util.types.isArray(passwords) && passwords.length > 0 ? passwords: undefined),
+        );
         return session_keys;
     } catch(e){
         throw Error("cannot_decrypt_session_key");

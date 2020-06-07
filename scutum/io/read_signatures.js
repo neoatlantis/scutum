@@ -1,10 +1,10 @@
 const openpgp = require("../openpgp");
-const file_input = require("./file_input");
+const file = require("./file");
 
 module.exports = async function(filenames, filter){
     const ret = [];
     for(let filename of filenames){
-        const data = await file_input(filename);
+        const data = await file.read(filename);
         const signature = await openpgp.signature.readArmored(data); // TODO read non-armored
 
         // It seems openpgp.js does not verify whether it's really a signature

@@ -1,5 +1,9 @@
 const openpgp = require("./openpgp");
 
+module.exports.types = {
+    isArray: (a) => Array.isArray(a),
+}
+
 
 module.exports.parse_date = function(date){
     // https://github.com/nearwood/iso8601/blob/master/index.js
