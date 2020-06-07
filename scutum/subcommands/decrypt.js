@@ -69,11 +69,11 @@ async function subcommand(args, options){
 
     // Attempt to decrypt, if message is encrypted
     
-    const need_decrypt = (message.packets.filterByTag(
+    /*const need_decrypt = (message.packets.filterByTag(
             enums.packet.symmetricallyEncrypted,
             enums.packet.symEncryptedIntegrityProtected,
             enums.packet.symEncryptedAEADProtected
-        ).length > 0);
+        ).length > 0);*/
 
     decrypt_session_keys = decrypt_session_keys.concat(
         await decrypt_session_key(
@@ -111,15 +111,24 @@ async function subcommand(args, options){
 
 
 
+/**
+ * Call message.decryptSessionKeys separately for decryption with passwords
+ * and keys. This is necessary since message.decryptSessionkeys accepted
+ * arguments mutually exclusive(see OpenPGP source code), and we have to invoke
+ * with both(keys + no passwords), and (no keys + passwords).
+ */
 
 async function decrypt_session_key(message, keys, passwords){
-    try{
-        const session_keys = await message.decryptSessionKeys(
-            (util.types.isArray(keys) && keys.length > 0 ? keys : undefined),
-            (util.types.isArray(passwords) && passwords.length > 0 ? passwords: undefined),
-        );
-        return session_keys;
-    } catch(e){
-        throw Error("cannot_decrypt_session_key");
+    const decryption_results = await Promise.allSettled([
+        message.decryptSessionKeys(keys, undefined),
+        message.decryptSessionKeys(undefined, passwords),
+    ]);
+
+    for(let decryption_result of decryption_results){
+        if(undefined !== decryption_result.value){
+            return decryption_result.value;
+        }
     }
+
+    throw Error("cannot_decrypt_session_key");
 }
