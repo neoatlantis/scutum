@@ -5,7 +5,7 @@ require("../router").register(
 
 async function subcommand(args, options){
     const { stdin, stdout, stderr } = options;
-    stdout("scutum 0.0.1\n");
+    stdout("scutum 0.0.2\n");
 }
 
 
